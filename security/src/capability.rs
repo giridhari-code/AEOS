@@ -59,8 +59,10 @@ bitflags::bitflags! {
     }
 }
 
+use core::sync::atomic::{AtomicUsize, Ordering};
+
 /// Global capability ID counter.
-static mut NEXT_CAP_ID: usize = 0;
+static NEXT_CAP_ID: AtomicUsize = AtomicUsize::new(0);
 
 impl Capability {
     /// Create a new capability.
@@ -70,11 +72,7 @@ impl Capability {
         resource_id: ResourceId,
         rights: Rights,
     ) -> Self {
-        let id = unsafe {
-            let id = CapabilityId(NEXT_CAP_ID);
-            NEXT_CAP_ID += 1;
-            id
-        };
+        let id = CapabilityId(NEXT_CAP_ID.fetch_add(1, Ordering::Relaxed));
 
         Self {
             id,
@@ -93,7 +91,7 @@ impl Capability {
     /// Create a restricted copy of this capability.
     pub fn restrict(&self, new_rights: Rights) -> Self {
         let mut cap = *self;
-        cap.rights = self.rights.intersect(new_rights);
+        cap.rights = self.rights & new_rights;
         cap
     }
 }

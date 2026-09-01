@@ -47,7 +47,7 @@ impl MemoryRegion {
 
     /// Check if this region is available for allocation.
     pub const fn is_available(&self) -> bool {
-        self.region_type == MemoryRegionType::Available
+        matches!(self.region_type, MemoryRegionType::Available)
     }
 
     /// Check if a given address falls within this region.
@@ -119,7 +119,7 @@ mod tests {
         let r1 = MemoryRegion::new(0x1000, 0x2000, MemoryRegionType::Available);
         let r2 = MemoryRegion::new(0x2000, 0x2000, MemoryRegionType::Available);
         let r3 = MemoryRegion::new(0x4000, 0x1000, MemoryRegionType::Available);
-        
+
         assert!(r1.overlaps(&r2));
         assert!(!r1.overlaps(&r3));
     }
@@ -128,7 +128,7 @@ mod tests {
     fn test_region_split() {
         let region = MemoryRegion::new(0x1000, 0x3000, MemoryRegionType::Available);
         let (before, after) = region.split_at(0x2000).unwrap();
-        
+
         assert_eq!(before.start, 0x1000);
         assert_eq!(before.size, 0x1000);
         assert_eq!(after.start, 0x2000);

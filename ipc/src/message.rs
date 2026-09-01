@@ -67,7 +67,7 @@ impl Message {
     }
 
     /// Get the data as a string (if valid UTF-8).
-    pub fn data_str(&self) -> Option<&str] {
+    pub fn data_str(&self) -> Option<&str> {
         core::str::from_utf8(self.data()).ok()
     }
 }

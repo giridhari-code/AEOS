@@ -59,26 +59,32 @@ impl Command {
     /// Get help text.
     fn help_text(&self) -> String {
         String::from(
-            "commands:\n  help          this text\n  ps            task table\n  mem           memory stats\n  ai            AI engine report\n  uptime        ticks since boot\n  reboot        reset system"
+            "commands:\n  help          this text\n  ps            task table\n  mem           memory stats\n  ai            AI engine report\n  uptime        ticks since boot\n  reboot        reset system",
         )
     }
 
     /// List processes.
     fn cmd_ps(&self, _args: &[&str]) -> Result<String, CommandError> {
         // Would list tasks from scheduler
-        Ok(String::from("  PID  NAME  STATE  PRIORITY\n  0    idle  Ready  0"))
+        Ok(String::from(
+            "  PID  NAME  STATE  PRIORITY\n  0    idle  Ready  0",
+        ))
     }
 
     /// Show memory stats.
     fn cmd_mem(&self, _args: &[&str]) -> Result<String, CommandError> {
         // Would show memory stats
-        Ok(String::from("  pmm: 1024/32768 pages free\n  heap used: 4096 bytes"))
+        Ok(String::from(
+            "  pmm: 1024/32768 pages free\n  heap used: 4096 bytes",
+        ))
     }
 
     /// Show AI status.
     fn cmd_ai(&self, _args: &[&str]) -> Result<String, CommandError> {
         // Would show AI engine status
-        Ok(String::from("  AI healthy: yes\n  AI inferences: 0\n  AI last action: SUSTAIN"))
+        Ok(String::from(
+            "  AI healthy: yes\n  AI inferences: 0\n  AI last action: SUSTAIN",
+        ))
     }
 
     /// Show uptime.

@@ -1,7 +1,7 @@
 //! IPC channel implementation.
 
+use crate::{IpcError, MAX_MESSAGES_PER_CHANNEL, Message};
 use alloc::collections::VecDeque;
-use crate::{Message, IpcError, MAX_MESSAGES_PER_CHANNEL};
 
 /// Unique channel identifier.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -101,9 +101,7 @@ impl Channel {
             return Err(IpcError::ChannelNotFound);
         }
 
-        self.queue
-            .front()
-            .ok_or(IpcError::ChannelEmpty)
+        self.queue.front().ok_or(IpcError::ChannelEmpty)
     }
 
     /// Close the channel.

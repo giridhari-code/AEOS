@@ -12,19 +12,19 @@
 //! Security state is protected by spinlocks. Capabilities cannot
 //! be forged due to cryptographic hashing.
 
-#![forbid(unsafe_code)]
+#![deny(unsafe_code)]
 #![no_std]
 #![warn(missing_docs)]
 
 extern crate alloc;
 
+mod audit;
 mod capability;
 mod rights;
-mod audit;
 
-pub use capability::{Capability, CapabilityId, ResourceType, ResourceId};
-pub use rights::{Rights, Read, Write, Execute, Grant};
-pub use audit::{AuditLog, AuditEntry, AuditEventType};
+pub use audit::{AuditEntry, AuditEventType, AuditLog};
+pub use capability::{Capability, CapabilityId, ResourceId, ResourceType};
+pub use rights::Rights;
 
 /// Maximum number of capabilities per task.
 pub const MAX_CAPABILITIES_PER_TASK: usize = 64;
@@ -89,7 +89,7 @@ impl SecurityManager {
     /// Create a new uninitialized security manager.
     pub const fn new() -> Self {
         Self {
-            capabilities: [CapabilitySet::new(); MAX_TASKS],
+            capabilities: [const { CapabilitySet::new() }; MAX_TASKS],
             task_count: 0,
             audit_log: AuditLog::new(),
             initialized: false,
@@ -136,17 +136,17 @@ impl SecurityManager {
         let cap_id = cap.id;
 
         // Find free slot
-        let slot = cap_set.caps.iter().position(|c| c.is_none())
+        let slot = cap_set
+            .caps
+            .iter()
+            .position(|c| c.is_none())
             .ok_or(SecurityError::CapabilityTableFull)?;
 
         cap_set.caps[slot] = Some(cap);
         cap_set.count += 1;
 
-        self.audit_log.record(
-            AuditEventType::CapabilityGranted,
-            task_id,
-            cap_id.0,
-        );
+        self.audit_log
+            .record(AuditEventType::CapabilityGranted, task_id, cap_id.0);
 
         Ok(cap_id)
     }
@@ -174,11 +174,7 @@ impl SecurityManager {
     }
 
     /// Revoke a capability.
-    pub fn revoke(
-        &mut self,
-        task_id: usize,
-        cap_id: CapabilityId,
-    ) -> Result<(), SecurityError> {
+    pub fn revoke(&mut self, task_id: usize, cap_id: CapabilityId) -> Result<(), SecurityError> {
         if !self.initialized {
             return Err(SecurityError::NotInitialized);
         }
@@ -188,17 +184,16 @@ impl SecurityManager {
         }
 
         let cap_set = &mut self.capabilities[task_id];
-        if let Some(slot) = cap_set.caps.iter().position(|c| {
-            c.as_ref().map_or(false, |cap| cap.id == cap_id)
-        }) {
+        if let Some(slot) = cap_set
+            .caps
+            .iter()
+            .position(|c| c.as_ref().map_or(false, |cap| cap.id == cap_id))
+        {
             cap_set.caps[slot] = None;
             cap_set.count -= 1;
 
-            self.audit_log.record(
-                AuditEventType::CapabilityRevoked,
-                task_id,
-                cap_id.0,
-            );
+            self.audit_log
+                .record(AuditEventType::CapabilityRevoked, task_id, cap_id.0);
 
             Ok(())
         } else {
@@ -223,7 +218,9 @@ impl SecurityManager {
         }
 
         // Find the source capability
-        let source_cap = self.capabilities[from_task].caps.iter()
+        let source_cap = self.capabilities[from_task]
+            .caps
+            .iter()
             .find_map(|c| c.as_ref())
             .filter(|c| c.id == cap_id)
             .ok_or(SecurityError::CapabilityNotFound)?;
@@ -234,7 +231,7 @@ impl SecurityManager {
         }
 
         // Create delegated capability with restricted rights
-        let delegated_rights = source_cap.rights.intersect(new_rights);
+        let delegated_rights = source_cap.rights & new_rights;
         let resource_type = source_cap.resource_type;
         let resource_id = source_cap.resource_id;
 
@@ -250,12 +247,9 @@ impl SecurityManager {
 }
 
 /// Global security manager instance.
-static mut SECURITY_MANAGER: Option<SecurityManager> = None;
+static SECURITY_MANAGER: spin::Mutex<Option<SecurityManager>> = spin::Mutex::new(None);
 
 /// Get a reference to the global security manager.
-///
-/// # Safety
-/// Must be called after initialization.
-pub fn security_manager() -> &'static mut SecurityManager {
-    unsafe { SECURITY_MANAGER.get_or_insert_with(|| SecurityManager::new()) }
+pub fn security_manager() -> spin::MutexGuard<'static, Option<SecurityManager>> {
+    SECURITY_MANAGER.lock()
 }

@@ -8,11 +8,11 @@
 //! - **No heap**: all allocations are static or frame-based
 //!
 //! ## Safety
-//! This module uses `#![forbid(unsafe_code)]` except for the low-level
+//! This module uses `#![deny(unsafe_code)]` except for the low-level
 //! page table manipulation functions which are marked `unsafe` and
 //! documented with preconditions.
 
-#![forbid(unsafe_code)]
+#![deny(unsafe_code)]
 #![no_std]
 #![warn(missing_docs)]
 
@@ -23,7 +23,7 @@ mod page_table;
 mod region;
 
 pub use frame_alloc::{FrameAllocator, FrameAllocatorError, PhysFrame};
-pub use page_table::{PageTable, PageTableFlags, VirtAddr, PhysAddr};
+pub use page_table::{PageTable, PageTableFlags, PhysAddr, VirtAddr};
 pub use region::{MemoryRegion, MemoryRegionType};
 
 /// Size of a single page in bytes.
@@ -63,23 +63,28 @@ pub enum InitError {
 /// # Safety
 /// - `phys_memory_start` must be the physical base address of RAM.
 /// - `phys_memory_size` must be the size of physical RAM in bytes.
+/// - `reserved_end` is the physical address above which frames are free.
+///   Frames below this address are considered in-use by the kernel.
 /// - This must be called exactly once, before any other memory functions.
-pub fn init(phys_memory_start: usize, phys_memory_size: usize) -> Result<(), InitError> {
-    frame_init(phys_memory_start, phys_memory_size)
+pub fn init(
+    phys_memory_start: usize,
+    phys_memory_size: usize,
+    reserved_end: usize,
+) -> Result<(), InitError> {
+    frame_init(phys_memory_start, phys_memory_size, reserved_end)
 }
 
 /// Initialize the frame allocator.
-fn frame_init(start: usize, size: usize) -> Result<(), InitError> {
-    frame_alloc::init(start, size)
+fn frame_init(start: usize, size: usize, reserved_end: usize) -> Result<(), InitError> {
+    let mut guard = FRAME_ALLOC.lock();
+    let alloc = guard.get_or_insert_with(FrameAllocator::new);
+    alloc.init(start, size, reserved_end)
 }
 
 /// Global frame allocator instance.
-static mut FRAME_ALLOC: Option<FrameAllocator> = None;
+static FRAME_ALLOC: spin::Mutex<Option<FrameAllocator>> = spin::Mutex::new(None);
 
 /// Get a reference to the global frame allocator.
-///
-/// # Safety
-/// Must be called after `init()` and from a single thread.
-pub fn frame_allocator() -> &'static mut FrameAllocator {
-    unsafe { FRAME_ALLOC.get_or_insert_with(|| FrameAllocator::new()) }
+pub fn frame_allocator() -> spin::MutexGuard<'static, Option<FrameAllocator>> {
+    FRAME_ALLOC.lock()
 }

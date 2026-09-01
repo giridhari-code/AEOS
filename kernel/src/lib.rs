@@ -17,7 +17,7 @@
 //! 6. Start idle task
 //! 7. Enable interrupts and context switch
 
-#![forbid(unsafe_code)]
+#![deny(unsafe_code)]
 #![no_std]
 #![warn(missing_docs)]
 
@@ -60,17 +60,28 @@ impl Kernel {
         }
 
         // Initialize subsystems in order
-        aeos_memory::init(0x4000_0000, 128 * 1024 * 1024)
+        // Reserve first 18MB for kernel image, boot structures, and stack
+        let reserved_end = 0x4000_0000 + 18 * 1024 * 1024;
+        aeos_memory::init(0x4000_0000, 128 * 1024 * 1024, reserved_end)
             .map_err(|_| KernelError::MemoryInitFailed)?;
 
-        aeos_scheduler::scheduler().init()
-            .map_err(|_| KernelError::SchedulerInitFailed)?;
+        {
+            let mut sched = aeos_scheduler::scheduler();
+            let s = sched.get_or_insert_with(aeos_scheduler::Scheduler::new);
+            s.init().map_err(|_| KernelError::SchedulerInitFailed)?;
+        }
 
-        aeos_ipc::ipc_state().init()
-            .map_err(|_| KernelError::IpcInitFailed)?;
+        {
+            let mut ipc = aeos_ipc::ipc_state();
+            let i = ipc.get_or_insert_with(aeos_ipc::IpcState::new);
+            i.init().map_err(|_| KernelError::IpcInitFailed)?;
+        }
 
-        aeos_security::security_manager().init()
-            .map_err(|_| KernelError::SecurityInitFailed)?;
+        {
+            let mut sec = aeos_security::security_manager();
+            let s = sec.get_or_insert_with(aeos_security::SecurityManager::new);
+            s.init().map_err(|_| KernelError::SecurityInitFailed)?;
+        }
 
         self.initialized = true;
         Ok(())
@@ -89,9 +100,13 @@ impl Kernel {
         self.boot_tick += 1;
 
         // Tick scheduler
-        if let Some(next_task) = aeos_scheduler::scheduler().tick() {
-            // Context switch to next task (architecture-specific)
-            arch::context_switch(next_task);
+        let mut sched = aeos_scheduler::scheduler();
+        if let Some(s) = sched.as_mut() {
+            if let Some(next_task) = s.tick() {
+                // Context switch to next task (architecture-specific)
+                drop(sched);
+                arch::context_switch(next_task);
+            }
         }
     }
 
@@ -117,23 +132,24 @@ pub enum KernelError {
 }
 
 /// Global kernel instance.
-static mut KERNEL: Option<Kernel> = None;
+static KERNEL: spin::Mutex<Option<Kernel>> = spin::Mutex::new(None);
 
 /// Get a reference to the global kernel.
-///
-/// # Safety
-/// Must be called after initialization.
-pub fn kernel() -> &'static mut Kernel {
-    unsafe { KERNEL.get_or_insert_with(|| Kernel::new()) }
+pub fn kernel() -> spin::MutexGuard<'static, Option<Kernel>> {
+    KERNEL.lock()
 }
 
 /// Entry point for the kernel.
-#[no_mangle]
+#[cfg(not(test))]
+#[allow(unsafe_code)]
+#[unsafe(no_mangle)]
 pub extern "C" fn _start() -> ! {
     // Initialize kernel
-    let k = kernel();
+    let mut guard = kernel();
+    let k = guard.get_or_insert_with(Kernel::new);
     if let Err(e) = k.init() {
         // Handle initialization error
+        drop(guard);
         loop {
             core::hint::spin_loop();
         }

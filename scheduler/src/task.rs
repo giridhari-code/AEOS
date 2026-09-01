@@ -65,7 +65,7 @@ impl TaskContext {
         };
         // Set up initial stack frame
         ctx.regs[13] = stack_top; // SP
-        ctx.regs[14] = entry;    // LR (link register)
+        ctx.regs[14] = entry; // LR (link register)
         ctx
     }
 }

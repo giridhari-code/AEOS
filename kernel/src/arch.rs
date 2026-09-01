@@ -29,10 +29,12 @@ pub fn disable_interrupts() {
 pub fn halt() -> ! {
     loop {
         #[cfg(target_arch = "x86_64")]
+        #[allow(unsafe_code)]
         unsafe {
             core::arch::asm!("hlt");
         }
         #[cfg(target_arch = "aarch64")]
+        #[allow(unsafe_code)]
         unsafe {
             core::arch::asm!("wfi");
         }

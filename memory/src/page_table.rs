@@ -97,16 +97,17 @@ bitflags! {
 
 impl PageTableFlags {
     /// Flags for a kernel code page (read-only, executable).
-    pub const KERNEL_CODE: Self = Self::PRESENT;
-    
+    pub const KERNEL_CODE: Self = Self::from_bits_truncate(1 << 0);
+
     /// Flags for a kernel data page (read-write, non-executable).
-    pub const KERNEL_DATA: Self = Self::PRESENT | Self::WRITABLE | Self::NO_EXECUTE;
-    
+    pub const KERNEL_DATA: Self = Self::from_bits_truncate((1 << 0) | (1 << 1) | (1 << 63));
+
     /// Flags for a user code page (read-only, executable, user-accessible).
-    pub const USER_CODE: Self = Self::PRESENT | Self::USER_ACCESSIBLE;
-    
+    pub const USER_CODE: Self = Self::from_bits_truncate((1 << 0) | (1 << 2));
+
     /// Flags for a user data page (read-write, non-executable, user-accessible).
-    pub const USER_DATA: Self = Self::PRESENT | Self::WRITABLE | Self::USER_ACCESSIBLE | Self::NO_EXECUTE;
+    pub const USER_DATA: Self =
+        Self::from_bits_truncate((1 << 0) | (1 << 1) | (1 << 2) | (1 << 63));
 }
 
 /// A page table entry.
@@ -205,16 +206,25 @@ impl PageTable {
     }
 
     /// Get or create a child table.
+    ///
+    /// # Safety
+    /// The address in the page table entry must point to a valid page table
+    /// in physical memory that is accessible from the current address space.
+    #[allow(unsafe_code)]
     fn get_or_create_table(
         &mut self,
         index: usize,
-        flags: PageTableFlags,
+        _flags: PageTableFlags,
     ) -> Result<&mut PageTable, MappingError> {
         let entry = self.entry_mut(index);
-        
+
         if entry.is_present() {
-            // Table exists, get reference
+            // Table exists, get reference via physical-to-virtual mapping
             let addr = entry.address().0;
+            // SAFETY: The address comes from a validated page table entry
+            // that was set during a previous successful map() call.
+            // In a real implementation, this would go through the physical
+            // memory manager's address translation.
             Ok(unsafe { &mut *(addr as *mut PageTable) })
         } else {
             // Create new table (would need frame allocation in real implementation)

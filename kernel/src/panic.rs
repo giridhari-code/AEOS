@@ -1,14 +1,15 @@
 //! Panic handler for the kernel.
 
+#[cfg(not(test))]
 use core::panic::PanicInfo;
 
 /// Kernel panic handler.
 ///
 /// # Safety
 /// This function is called on panic and must not return.
+#[cfg(not(test))]
 #[panic_handler]
-#[no_mangle]
-pub extern "C" fn panic(_info: &PanicInfo) -> ! {
+pub fn panic(_info: &PanicInfo) -> ! {
     // In a real kernel, we'd:
     // 1. Disable interrupts
     // 2. Print panic message to serial console

@@ -1,6 +1,6 @@
 //! Scheduling policies.
 
-use crate::{TaskPriority, DEFAULT_TIME_SLICE};
+use crate::{DEFAULT_TIME_SLICE, TaskPriority};
 
 /// Scheduling policy trait.
 pub trait SchedulerPolicy {

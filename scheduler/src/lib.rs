@@ -19,13 +19,13 @@
 
 extern crate alloc;
 
-mod task;
-mod queue;
 mod policy;
+mod queue;
+mod task;
 
-pub use task::{Task, TaskId, TaskState, TaskPriority, TaskContext};
-pub use queue::{RunQueue, PriorityQueue};
-pub use policy::{SchedulerPolicy, RoundRobin, PriorityRoundRobin};
+pub use policy::{PriorityRoundRobin, RoundRobin, SchedulerPolicy};
+pub use queue::{PriorityQueue, RunQueue};
+pub use task::{Task, TaskContext, TaskId, TaskPriority, TaskState};
 
 /// Maximum number of tasks in the system.
 pub const MAX_TASKS: usize = 64;
@@ -74,9 +74,9 @@ pub struct Scheduler {
 
 impl Scheduler {
     /// Create a new uninitialized scheduler.
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
         Self {
-            tasks: [None; MAX_TASKS],
+            tasks: [const { None }; MAX_TASKS],
             queues: PriorityQueue::new(),
             current: None,
             policy: PriorityRoundRobin::new(),
@@ -104,7 +104,7 @@ impl Scheduler {
     /// Create a new task.
     pub fn create_task(
         &mut self,
-        name: &str,
+        name: &'static str,
         entry: usize,
         priority: TaskPriority,
         stack_size: usize,
@@ -121,13 +121,7 @@ impl Scheduler {
         let id = self.find_free_slot().ok_or(SchedulerError::TaskTableFull)?;
 
         // Create task
-        let task = Task::new(
-            TaskId(id),
-            name,
-            entry,
-            priority,
-            stack_size,
-        );
+        let task = Task::new(TaskId(id), name, entry, priority, stack_size);
 
         self.tasks[id] = Some(task);
         self.queues.enqueue(TaskId(id), priority);
@@ -137,32 +131,35 @@ impl Scheduler {
 
     /// Exit the current task.
     pub fn exit_task(&mut self, task_id: TaskId, exit_code: i32) -> Result<(), SchedulerError> {
+        let priority = self.get_task(task_id)?.priority;
         let task = self.get_task_mut(task_id)?;
         task.state = TaskState::Zombie;
         task.exit_code = exit_code;
-        self.queues.remove(task_id, task.priority);
+        self.queues.remove(task_id, priority);
         Ok(())
     }
 
     /// Block a task (wait for event).
     pub fn block_task(&mut self, task_id: TaskId) -> Result<(), SchedulerError> {
+        let priority = self.get_task(task_id)?.priority;
         let task = self.get_task_mut(task_id)?;
         if task.state != TaskState::Running && task.state != TaskState::Ready {
             return Err(SchedulerError::InvalidTaskState);
         }
         task.state = TaskState::Blocked;
-        self.queues.remove(task_id, task.priority);
+        self.queues.remove(task_id, priority);
         Ok(())
     }
 
     /// Unblock a task (event occurred).
     pub fn unblock_task(&mut self, task_id: TaskId) -> Result<(), SchedulerError> {
+        let priority = self.get_task(task_id)?.priority;
         let task = self.get_task_mut(task_id)?;
         if task.state != TaskState::Blocked {
             return Err(SchedulerError::InvalidTaskState);
         }
         task.state = TaskState::Ready;
-        self.queues.enqueue(task_id, task.priority);
+        self.queues.enqueue(task_id, priority);
         Ok(())
     }
 
@@ -263,12 +260,9 @@ impl Scheduler {
 }
 
 /// Global scheduler instance.
-static mut SCHEDULER: Option<Scheduler> = None;
+static SCHEDULER: spin::Mutex<Option<Scheduler>> = spin::Mutex::new(None);
 
 /// Get a reference to the global scheduler.
-///
-/// # Safety
-/// Must be called after initialization and with interrupts disabled.
-pub fn scheduler() -> &'static mut Scheduler {
-    unsafe { SCHEDULER.get_or_insert_with(|| Scheduler::new()) }
+pub fn scheduler() -> spin::MutexGuard<'static, Option<Scheduler>> {
+    SCHEDULER.lock()
 }

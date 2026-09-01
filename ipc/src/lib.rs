@@ -19,12 +19,12 @@
 extern crate alloc;
 
 mod channel;
-mod message;
 mod envelope;
+mod message;
 
-pub use channel::{Channel, ChannelId, ChannelError, ChannelConfig};
-pub use message::{Message, MessageHeader, MessageType};
+pub use channel::{Channel, ChannelConfig, ChannelId};
 pub use envelope::{Envelope, EnvelopeType, EventCatalog};
+pub use message::{Message, MessageHeader, MessageType};
 
 /// Maximum number of IPC channels.
 pub const MAX_CHANNELS: usize = 32;
@@ -72,7 +72,7 @@ impl IpcState {
     /// Create a new uninitialized IPC state.
     pub const fn new() -> Self {
         Self {
-            channels: [None; MAX_CHANNELS],
+            channels: [const { None }; MAX_CHANNELS],
             channel_count: 0,
             initialized: false,
         }
@@ -90,7 +90,7 @@ impl IpcState {
     /// Create a new channel.
     pub fn create_channel(
         &mut self,
-        name: &str,
+        name: &'static str,
         config: ChannelConfig,
     ) -> Result<ChannelId, IpcError> {
         if !self.initialized {
@@ -102,7 +102,10 @@ impl IpcState {
         }
 
         // Find free slot
-        let slot = self.channels.iter().position(|c| c.is_none())
+        let slot = self
+            .channels
+            .iter()
+            .position(|c| c.is_none())
             .ok_or(IpcError::ChannelFull)?;
 
         let channel = Channel::new(ChannelId(slot), name, config);
@@ -113,20 +116,13 @@ impl IpcState {
     }
 
     /// Send a message on a channel.
-    pub fn send(
-        &mut self,
-        channel_id: ChannelId,
-        message: Message,
-    ) -> Result<(), IpcError> {
+    pub fn send(&mut self, channel_id: ChannelId, message: Message) -> Result<(), IpcError> {
         let channel = self.get_channel_mut(channel_id)?;
         channel.send(message)
     }
 
     /// Receive a message from a channel.
-    pub fn receive(
-        &mut self,
-        channel_id: ChannelId,
-    ) -> Result<Message, IpcError> {
+    pub fn receive(&mut self, channel_id: ChannelId) -> Result<Message, IpcError> {
         let channel = self.get_channel_mut(channel_id)?;
         channel.receive()
     }
@@ -146,12 +142,9 @@ impl IpcState {
 }
 
 /// Global IPC state instance.
-static mut IPC_STATE: Option<IpcState> = None;
+static IPC_STATE: spin::Mutex<Option<IpcState>> = spin::Mutex::new(None);
 
 /// Get a reference to the global IPC state.
-///
-/// # Safety
-/// Must be called after initialization and with interrupts disabled.
-pub fn ipc_state() -> &'static mut IpcState {
-    unsafe { IPC_STATE.get_or_insert_with(|| IpcState::new()) }
+pub fn ipc_state() -> spin::MutexGuard<'static, Option<IpcState>> {
+    IPC_STATE.lock()
 }

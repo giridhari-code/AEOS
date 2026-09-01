@@ -62,7 +62,10 @@ impl Shell {
 
         match c {
             b'\r' | b'\n' => {
-                let line = self.get_line();
+                let line = {
+                    let l = self.get_line();
+                    alloc::string::String::from(l)
+                };
                 self.clear_line();
                 self.print_prompt();
 
@@ -70,9 +73,9 @@ impl Shell {
                     return None;
                 }
 
-                self.execute_line(line)
+                self.execute_line(&line)
             }
-            0x7F | b'\b' => {
+            0x7F | 0x08 => {
                 if self.position > 0 {
                     self.position -= 1;
                     Some(ShellEvent::Backspace)
@@ -120,12 +123,10 @@ impl Shell {
         let args = &parts[1..];
 
         match Command::from_str(cmd) {
-            Ok(command) => {
-                match command.execute(args) {
-                    Ok(output) => Some(ShellEvent::Output(output)),
-                    Err(e) => Some(ShellEvent::Error(e)),
-                }
-            }
+            Ok(command) => match command.execute(args) {
+                Ok(output) => Some(ShellEvent::Output(output)),
+                Err(e) => Some(ShellEvent::Error(e)),
+            },
             Err(_) => Some(ShellEvent::Error(CommandError::UnknownCommand)),
         }
     }
@@ -154,12 +155,9 @@ pub enum ShellError {
 }
 
 /// Global shell instance.
-static mut SHELL: Option<Shell> = None;
+static SHELL: spin::Mutex<Option<Shell>> = spin::Mutex::new(None);
 
 /// Get a reference to the global shell.
-///
-/// # Safety
-/// Must be called after initialization.
-pub fn shell() -> &'static mut Shell {
-    unsafe { SHELL.get_or_insert_with(|| Shell::new()) }
+pub fn shell() -> spin::MutexGuard<'static, Option<Shell>> {
+    SHELL.lock()
 }

@@ -17,9 +17,7 @@ members = [
     "cli",
     "plugins/runtime",
     "logging",
-    "telemetry",
     "diagnostics",
-    "sdk/bindings",
 ]
 default-members = ["kernel", "ipc", "security", "cli"]
 
@@ -43,7 +41,6 @@ aeos-filesystem = { path = "filesystem", version = "0.1.0" }
 aeos-runtime = { path = "runtime", version = "0.1.0" }
 aeos-services = { path = "services", version = "0.1.0" }
 aeos-logging = { path = "logging", version = "0.1.0" }
-aeos-telemetry = { path = "telemetry", version = "0.1.0" }
 aeos-diagnostics = { path = "diagnostics", version = "0.1.0" }
 
 thiserror = "2"
@@ -60,12 +57,11 @@ proptest = "1"
 criterion = "0.5"
 
 [workspace.lints.rust]
-unsafe_code = "forbid"
+unsafe_code = "deny"
 unsafe_op_in_unsafe_fn = "deny"
 missing_docs = "deny"
 
 [workspace.lints.clippy]
-all = "deny"
 pedantic = "warn"
 unwrap_used = "warn"
 

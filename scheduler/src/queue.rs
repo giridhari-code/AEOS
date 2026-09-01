@@ -1,7 +1,7 @@
 //! Priority queues for the scheduler.
 
+use crate::{MAX_PRIORITY, TaskId, TaskPriority};
 use alloc::collections::VecDeque;
-use crate::{TaskId, TaskPriority, MAX_PRIORITY};
 
 /// A simple run queue for a single priority level.
 #[derive(Debug)]

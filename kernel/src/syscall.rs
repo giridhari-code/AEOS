@@ -69,7 +69,13 @@ pub enum SyscallError {
 pub type SyscallResult = Result<usize, SyscallError>;
 
 /// Handle a system call.
-pub fn handle_syscall(number: usize, arg0: usize, arg1: usize, arg2: usize, arg3: usize) -> SyscallResult {
+pub fn handle_syscall(
+    number: usize,
+    arg0: usize,
+    arg1: usize,
+    arg2: usize,
+    arg3: usize,
+) -> SyscallResult {
     let syscall = Syscall::try_from(number).map_err(|_| SyscallError::InvalidSyscall)?;
 
     match syscall {
@@ -82,13 +88,17 @@ pub fn handle_syscall(number: usize, arg0: usize, arg1: usize, arg2: usize, arg3
             Ok(0)
         }
         Syscall::Yield => {
-            aeos_scheduler::scheduler().schedule();
+            let mut sched = aeos_scheduler::scheduler();
+            if let Some(s) = sched.as_mut() {
+                s.schedule();
+            }
             Ok(0)
         }
         Syscall::Exit => {
-            let task_id = aeos_scheduler::scheduler().current_task()
-                .ok_or(SyscallError::OperationFailed)?;
-            aeos_scheduler::scheduler().exit_task(task_id, arg0 as i32)
+            let mut sched = aeos_scheduler::scheduler();
+            let s = sched.as_mut().ok_or(SyscallError::OperationFailed)?;
+            let task_id = s.current_task().ok_or(SyscallError::OperationFailed)?;
+            s.exit_task(task_id, arg0 as i32)
                 .map_err(|_| SyscallError::OperationFailed)?;
             Ok(0)
         }
@@ -153,8 +163,9 @@ pub fn handle_syscall(number: usize, arg0: usize, arg1: usize, arg2: usize, arg3
             Ok(0)
         }
         Syscall::GetPid => {
-            let task_id = aeos_scheduler::scheduler().current_task()
-                .ok_or(SyscallError::OperationFailed)?;
+            let sched = aeos_scheduler::scheduler();
+            let s = sched.as_ref().ok_or(SyscallError::OperationFailed)?;
+            let task_id = s.current_task().ok_or(SyscallError::OperationFailed)?;
             Ok(task_id.0)
         }
         Syscall::WaitPid => {
