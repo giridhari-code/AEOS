@@ -1,0 +1,14 @@
+# Pinned Rust toolchain for all AEOS builds (CODE_STYLE.md §2, BUILD.md §1).
+# CI and local builds must use exactly this toolchain; bump only via a
+# dedicated toolchain-update PR with checksums recorded in tools/build/.
+
+[toolchain]
+channel = "1.85.0"
+components = ["rustfmt", "clippy", "rust-src", "rust-analysis"]
+targets = [
+    "x86_64-unknown-none",
+    "aarch64-unknown-none",
+    "riscv64gc-unknown-none",
+    "x86_64-unknown-linux-gnu",
+]
+profile = "minimal"

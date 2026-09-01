@@ -1,0 +1,36 @@
+name: Docs
+
+on:
+  pull_request:
+    paths: ["docs/**", "mkdocs.yml", "README.md"]
+  push:
+    branches: [main]
+    paths: ["docs/**", "mkdocs.yml", "README.md"]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.13"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "${{ env.PYTHON_VERSION }}" }
+      - run: uv sync --locked --group docs
+      - run: bash scripts/docs.sh
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: site }
+      - if: github.ref == 'refs/heads/main'
+        uses: actions/deploy-pages@v4

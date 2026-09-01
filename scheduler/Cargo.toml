@@ -1,0 +1,16 @@
+[package]
+name = "aeos-scheduler"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "AEOS preemptive scheduler with round-robin and priority"
+
+[dependencies]
+aeos-memory = { workspace = true }
+bitflags = { workspace = true }
+spin = { workspace = true }
+thiserror = { workspace = true }
+
+[lints]
+workspace = true

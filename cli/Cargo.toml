@@ -1,0 +1,16 @@
+[package]
+name = "aeos-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "AEOS command-line interface"
+
+[dependencies]
+aeos-kernel = { workspace = true }
+aeos-scheduler = { workspace = true }
+aeos-ipc = { workspace = true }
+thiserror = { workspace = true }
+
+[lints]
+workspace = true

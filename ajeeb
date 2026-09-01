@@ -1,0 +1,168 @@
+#!/usr/bin/env bash
+#
+#   █████╗       ██╗███████╗██████╗
+#  ██╔══██╗      ██║██╔════╝██╔══██╗
+#  ███████║█████╗██║█████╗  ██████╔╝
+#  ██╔══██║╚════╝██║██╔══╝  ██╔═══╝
+#  ██║  ██║      ██║███████╗██║
+#  ╚═╝  ╚═╝      ╚═╝╚══════╝╚═╝
+#
+#  AEOS launcher - ek command, pura OS.
+#
+#  Usage:
+#    ./ajeeb                terminal mein VM boot karo (ajeeb.gos)
+#                           NOTE: Termux/PRoot pe --log use karna best hai!
+#    ./ajeeb --log          serial log print karke exit (kisi bhi terminal pe chalega)
+#    ./ajeeb --iso          CDROM image se boot
+#    ./ajeeb --flash DEV    ajeeb.gos ko REAL HARDWARE pe likho (USB/disk)
+#                           e.g. sudo ./ajeeb --flash /dev/sdX
+#    ./ajeeb --smp N        N secondary CPUs ke saath boot (default 1)
+#    ./ajeeb --help
+#
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+GOS="$ROOT/build/ajeeb.gos"
+ISO="$ROOT/build/aeos.iso"
+LOG="${TMPDIR:-/tmp}/aeos-serial.log"
+
+die() { echo "ajeeb: $*" >&2; exit 1; }
+
+# ------------------------------------------------------------------
+# helpers
+# ------------------------------------------------------------------
+
+have() { command -v "$1" >/dev/null 2>&1; }
+
+qemu_for_arch() {
+    case "$(uname -m)" in
+        x86_64)  echo qemu-system-x86_64 ;;
+        aarch64|arm64) echo qemu-system-aarch64 ;;
+        *) die "unsupported host arch: $(uname -m)" ;;
+    esac
+}
+
+vm_accel() {
+    # Real-hardware acceleration jab available ho (near-native speed).
+    if [ -w /dev/kvm ]; then
+        echo "-accel kvm -cpu host"
+    else
+        echo "-accel tcg -cpu cortex-a72"
+    fi
+}
+
+ensure_image() {
+    [ -f "$GOS" ] || { echo "==> ajeeb.gos nahi mila - build kar raha hoon..."; make -C "$ROOT" build-gos >/dev/null; }
+    [ -f "$GOS" ] || die "build failed - 'make build-gos' manually try karo"
+}
+
+ensure_bios() {
+    local b="$ROOT/boot/bios/obj/aeos-bios.bin"
+    [ -f "$b" ] || make -C "$ROOT/boot/bios" all >/dev/null
+    echo "$b"
+}
+
+ensure_disk_stub() {
+    # x86 path: BIOS hamara MBR chalata hai, bas disk chahiye
+    [ -f "$GOS" ] && return 0
+    ensure_image
+}
+
+# ------------------------------------------------------------------
+# modes
+# ------------------------------------------------------------------
+
+do_flash() {
+    local dev="${1:-}"
+    [ -n "$dev" ] || die "--flash ke liye device do, e.g. sudo ./ajeeb --flash /dev/sdX"
+    [ -b "$dev" ] || die "$dev block device nahi hai"
+    [ "$(id -u)" = 0 ] || die "root permissions chahiye: sudo ./ajeeb --flash $dev"
+    ensure_image
+    echo "!! WARNING: $dev ka POORA data udd jayega !!"
+    echo "   Image : $GOS ($(stat -c%s "$GOS") bytes)"
+    read -r -p "   Confirm? type YES: " ans
+    [ "$ans" = "YES" ] || die "cancelled"
+    dd if="$GOS" of="$dev" bs=4M status=progress conv=fsync
+    sync
+    echo "Done! $dev se boot karo (legacy/CSM mode on x86 PCs)."
+}
+
+do_log() {
+    local smp="${SMP:-1}"
+    local qemu; qemu=$(qemu_for_arch)
+    have "$qemu" || die "$qemu install nahi hai (apt install qemu-system-$([[ $(uname -m) == x86_64 ]] && echo x86 || echo arm))"
+    ensure_image
+
+    local extra=()
+    if [[ "$(uname -m)" == "x86_64" ]]; then
+        extra+=(-drive "if=none,file=$GOS,format=raw,id=hd0"
+                "-device" "virtio-blk-pci,drive=hd0")
+    else
+        local bios; bios=$(ensure_bios)
+        extra+=(-bios "$bios"
+                "-drive" "if=none,file=$GOS,format=raw,id=hd0"
+                "-device" "virtio-blk-device,drive=hd0")
+    fi
+
+    rm -f "$LOG"
+    echo "==> AEOS booting ($qemu, ${smp} cpu, serial -> $LOG)"
+    timeout 12 "$qemu" -machine virt,accel=kvm:tcg -cpu cortex-a72 \
+        -global virtio-mmio.force-legacy=false \
+        -display none -monitor none -serial "file:$LOG" \
+        -m 128M -smp "$smp" "${extra[@]}" >/dev/null 2>&1 || true
+    echo "────────────── serial.log ──────────────"
+    cat "$LOG"
+    echo "────────────────────────────────────────"
+    echo "=== done ==="
+}
+
+do_run() {
+    local smp="${SMP:-1}" iso=0
+    [ "${1:-}" = "--iso" ] && iso=1
+    local qemu; qemu=$(qemu_for_arch)
+    have "$qemu" || die "$qemu install nahi hai"
+
+    local accel
+    accel=$(vm_accel)
+
+    local extra=()
+    if [ "$iso" = 1 ]; then
+        [ -f "$ISO" ] || make -C "$ROOT" build-iso >/dev/null
+        extra+=(-cdrom "$ISO" -boot d)
+    elif [[ "$(uname -m)" == "x86_64" ]]; then
+        ensure_disk_stub
+        extra+=(-drive "if=none,file=$GOS,format=raw,id=hd0"
+                "-device" "virtio-blk-pci,drive=hd0")
+    else
+        ensure_image
+        local bios; bios=$(ensure_bios)
+        extra+=(-bios "$bios"
+                "-drive" "if=none,file=$GOS,format=raw,id=hd0"
+                "-device" "virtio-blk-device,drive=hd0")
+    fi
+
+    echo "┌───────────────────────────────────────────┐"
+    echo "│  AEOS VM · ${smp} CPU(s) · exit: Ctrl+A X  │"
+    echo "└───────────────────────────────────────────┘"
+
+    exec "$qemu" -machine virt $accel \
+        -global virtio-mmio.force-legacy=false \
+        -nographic -serial mon:stdio \
+        -m 128M -smp "$smp" $accel "${extra[@]}"
+}
+
+# ------------------------------------------------------------------
+# arg parsing
+# ------------------------------------------------------------------
+
+SMP=1
+case "${1:-}" in
+    "")         do_run ;;
+    --log)      shift; do_log ;;
+    --iso)      do_run --iso ;;
+    --flash)    shift; do_flash "${1:-}" ;;
+    --smp)      SMP="${2:-1}"; shift 2
+                [ "${1:-}" = "--log" ] && do_log || do_run ;;
+    -h|--help)  sed -n '2,20p' "$0" ;;
+    *)          die "unknown option: $1 (--help dekho)" ;;
+esac

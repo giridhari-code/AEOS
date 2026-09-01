@@ -1,0 +1,15 @@
+[package]
+name = "aeos-filesystem"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "AEOS filesystem (ext2 read MVP)"
+
+[dependencies]
+aeos-memory = { workspace = true }
+aeos-storage = { workspace = true }
+thiserror = { workspace = true }
+
+[lints]
+workspace = true

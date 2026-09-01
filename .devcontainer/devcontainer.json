@@ -1,0 +1,34 @@
+{
+  "name": "AEOS Development Container",
+  "image": "ghcr.io/aeos/toolchain:0.1.0",
+  "mounts": [],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "rust-lang.rust-analyzer",
+        "tamasfe.even-better-toml",
+        "charliermarsh.ruff",
+        "ms-python.python",
+        "ms-vscode.cpptools",
+        "eamodio.gitlens",
+        "yzhang.markdown-all-in-one"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "rust-analyzer.cargo.buildScripts.enable": true,
+        "rust-analyzer.check.overrideCommand": [
+          "cargo",
+          "clippy",
+          "--workspace",
+          "--all-targets",
+          "--",
+          "-D",
+          "warnings"
+        ]
+      }
+    }
+  },
+  "postCreateCommand": "uv sync --locked --group dev --group docs && cargo build --workspace --locked",
+  "postStartCommand": "make setup",
+  "remoteUser": "vscode"
+}

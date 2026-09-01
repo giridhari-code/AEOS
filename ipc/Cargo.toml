@@ -1,0 +1,17 @@
+[package]
+name = "aeos-ipc"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "AEOS Inter-Process Communication (message channels)"
+
+[dependencies]
+aeos-memory = { workspace = true }
+aeos-scheduler = { workspace = true }
+bitflags = { workspace = true }
+spin = { workspace = true }
+thiserror = { workspace = true }
+
+[lints]
+workspace = true

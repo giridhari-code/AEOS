@@ -1,0 +1,65 @@
+# AEOS Python workspace root (uv). Members are the AI subsystems, the SDK,
+# and the Python bindings of the cross-cutting crates.
+
+[project]
+name = "aeos-workspace"
+version = "0.2.0"
+description = "Ajeeb Embodied AI Operating System - Python workspace"
+requires-python = ">=3.13"
+license = { text = "Apache-2.0" }
+
+[tool.uv.workspace]
+members = [
+    "sdk/py",
+    "perception",
+    "vision",
+    "audio",
+    "planning",
+    "reasoning",
+    "learning",
+    "simulation",
+    "robotics",
+    "communication",
+    "logging/bindings",
+    "telemetry/bindings",
+    "diagnostics/bindings",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py313"
+src = ["sdk", "perception", "vision", "audio", "planning", "reasoning",
+       "learning", "simulation", "robotics", "communication", "logging",
+       "telemetry", "diagnostics"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "SIM", "C4", "ASYNC", "RUF", "PERF",
+          "PT", "S"]
+ignore = ["S101"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+files = ["sdk/py/src", "perception/src", "vision/src", "audio/src",
+         "planning/src", "reasoning/src", "learning/src", "simulation/src",
+         "robotics/src", "communication/src", "logging/bindings/src",
+         "telemetry/bindings/src", "diagnostics/bindings/src"]
+
+[tool.pytest.ini_options]
+testpaths = ["sdk/tests", "perception/tests", "vision/tests", "audio/tests",
+             "planning/tests", "reasoning/tests", "learning/tests",
+             "simulation/tests", "robotics/tests", "communication/tests",
+             "tests/sdk", "tests/ai"]
+asyncio_mode = "auto"
+markers = [
+    "safety: safety-critical behavior (gates releases)",
+    "contract: port contract suites",
+    "e2e: full-system scenarios",
+    "bench: benchmark tests",
+    "flaky: quarantined flaky tests",
+]
+
+[tool.coverage.run]
+source = ["sdk", "perception", "vision", "audio", "planning", "reasoning",
+          "learning", "simulation", "robotics", "communication"]
+branch = true

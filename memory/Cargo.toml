@@ -1,0 +1,15 @@
+[package]
+name = "aeos-memory"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "AEOS physical frame allocator and virtual memory paging"
+
+[dependencies]
+bitflags = { workspace = true }
+spin = { workspace = true }
+thiserror = { workspace = true }
+
+[lints]
+workspace = true

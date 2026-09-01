@@ -1,0 +1,56 @@
+# Rust
+target/
+Cargo.lock.orig
+*.profraw
+
+# C
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.obj
+*.exe
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage*
+htmlcov/
+
+# Build outputs
+build/
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# Tool caches
+.benchmarks/
+.profile/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+
+# Runtime artifacts
+runs/
+telemetry/
+*.iso
+*.img
+*.qcow2
+
+# Docs build
+site/
+docs/_root/
+docs/index.md

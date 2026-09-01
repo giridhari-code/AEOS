@@ -1,0 +1,46 @@
+site_name: Ajeeb Embodied AI Operating System
+site_url: https://aeos.dev
+repo_url: https://github.com/aeos/aeos
+theme:
+  name: material
+  palette:
+    scheme: slate
+    primary: teal
+  features:
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+plugins:
+  - search
+  - mermaid2
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:mermaid2.fence
+strict: true
+nav:
+  - Home: index.md
+  - Architecture:
+      - Master: architecture/ARCHITECTURE.md
+      - Communication: architecture/COMMUNICATION.md
+      - Plugins: architecture/PLUGINS.md
+      - Build: architecture/BUILD.md
+  - Code Style: _root/CODE_STYLE.md
+  - Development: _root/DEVELOPMENT.md
+  - Testing: _root/TESTING.md
+  - Security: _root/SECURITY.md
+  - Roadmap: _root/ROADMAP.md
+  - Risks: _root/RISKS.md
+  - Expansion: _root/EXPANSION.md
+  - Contributing: _root/CONTRIBUTING.md
+  - Changelog: _root/CHANGELOG.md
+  - License: _root/LICENSE.md
+  - ADRs: adr/README.md
+  - Guides: guides/README.md
+  - API Reference: api/README.md

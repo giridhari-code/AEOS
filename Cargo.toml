@@ -1,0 +1,79 @@
+# AEOS Rust workspace. One crate per subsystem; crates are thin, typed, and
+# never import each other's internals (ARCHITECTURE.md §4, CODE_STYLE.md §1.11).
+
+[workspace]
+resolver = "3"
+members = [
+    "kernel",
+    "runtime",
+    "memory",
+    "scheduler",
+    "ipc",
+    "security",
+    "network",
+    "storage",
+    "filesystem",
+    "services",
+    "cli",
+    "plugins/runtime",
+    "logging",
+    "telemetry",
+    "diagnostics",
+    "sdk/bindings",
+]
+default-members = ["kernel", "ipc", "security", "cli"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "Apache-2.0"
+repository = "https://github.com/aeos/aeos"
+authors = ["AEOS Contributors"]
+
+[workspace.dependencies]
+aeos-kernel = { path = "kernel", version = "0.1.0" }
+aeos-memory = { path = "memory", version = "0.1.0" }
+aeos-scheduler = { path = "scheduler", version = "0.1.0" }
+aeos-ipc = { path = "ipc", version = "0.1.0" }
+aeos-security = { path = "security", version = "0.1.0" }
+aeos-network = { path = "network", version = "0.1.0" }
+aeos-storage = { path = "storage", version = "0.1.0" }
+aeos-filesystem = { path = "filesystem", version = "0.1.0" }
+aeos-runtime = { path = "runtime", version = "0.1.0" }
+aeos-services = { path = "services", version = "0.1.0" }
+aeos-logging = { path = "logging", version = "0.1.0" }
+aeos-telemetry = { path = "telemetry", version = "0.1.0" }
+aeos-diagnostics = { path = "diagnostics", version = "0.1.0" }
+
+thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+opentelemetry = "0.27"
+opentelemetry_sdk = "0.27"
+parking_lot = "0.12"
+spin = "0.9"
+bitflags = "2"
+num_enum = "0.7"
+zerocopy = "0.8"
+proptest = "1"
+criterion = "0.5"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+unsafe_op_in_unsafe_fn = "deny"
+missing_docs = "deny"
+
+[workspace.lints.clippy]
+all = "deny"
+pedantic = "warn"
+unwrap_used = "warn"
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
+
+[profile.release.package."*"]
+opt-level = 3

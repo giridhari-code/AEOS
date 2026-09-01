@@ -1,0 +1,59 @@
+# Module ownership (CONTRIBUTING §9). Replace placeholder teams on first
+# repository setup. Architecture-wide changes additionally require the
+# Architecture Working Group review.
+
+*                                   @aeos/architecture-wg
+
+# Boot + kernel core (assembly + Rust)
+boot/                               @aeos/kernel-owners
+kernel/                             @aeos/kernel-owners
+
+# System-level Rust subsystems
+runtime/                            @aeos/kernel-owners
+memory/                             @aeos/memory-owners
+scheduler/                          @aeos/kernel-owners
+ipc/                                @aeos/ipc-owners
+security/                           @aeos/security-owners
+network/                            @aeos/network-owners
+storage/                            @aeos/storage-owners
+filesystem/                         @aeos/storage-owners
+services/                           @aeos/services-owners
+logging/                            @aeos/observability-owners
+telemetry/                          @aeos/observability-owners
+diagnostics/                        @aeos/observability-owners
+
+# C boundary: HAL, drivers, device (safety-critical)
+hal/                                @aeos/safety-subcommittee
+drivers/                            @aeos/safety-subcommittee
+device/                             @aeos/safety-subcommittee
+
+# AI layers (Python)
+perception/                         @aeos/perception-owners
+vision/                             @aeos/perception-owners
+audio/                              @aeos/perception-owners
+planning/                           @aeos/planner-owners
+reasoning/                          @aeos/reasoning-owners
+learning/                           @aeos/learning-owners
+simulation/                         @aeos/simulation-owners
+robotics/                           @aeos/safety-subcommittee
+communication/                      @aeos/communication-owners
+
+# Extension points
+plugins/                            @aeos/plugins-owners
+sdk/                                @aeos/sdk-owners
+cli/                                @aeos/sdk-owners
+config/                             @aeos/config-owners
+
+# Safety and security boundaries
+tests/safety/                       @aeos/safety-subcommittee
+tests/hil/                          @aeos/safety-subcommittee
+benchmarks/                         @aeos/architecture-wg
+
+# Docs
+docs/adr/                           @aeos/architecture-wg
+docs/architecture/                  @aeos/architecture-wg
+ARCHITECTURE.md                     @aeos/architecture-wg
+ROADMAP.md                          @aeos/architecture-wg
+RISKS.md                            @aeos/architecture-wg
+SECURITY.md                         @aeos/security-owners
+CODE_STYLE.md                       @aeos/architecture-wg

@@ -1,0 +1,18 @@
+[package]
+name = "aeos-kernel"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "AEOS kernel core - ties all subsystems together"
+
+[dependencies]
+aeos-memory = { workspace = true }
+aeos-scheduler = { workspace = true }
+aeos-ipc = { workspace = true }
+aeos-security = { workspace = true }
+thiserror = { workspace = true }
+spin = { workspace = true }
+
+[lints]
+workspace = true

@@ -1,0 +1,15 @@
+[package]
+name = "aeos-storage"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "AEOS storage subsystem"
+
+[dependencies]
+aeos-memory = { workspace = true }
+aeos-ipc = { workspace = true }
+thiserror = { workspace = true }
+
+[lints]
+workspace = true
