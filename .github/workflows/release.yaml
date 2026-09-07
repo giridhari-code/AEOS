@@ -16,14 +16,14 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { fetch-depth: 0 }
 
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.85.0
           targets: x86_64-unknown-none
-      - uses: astral-sh/setup-uv@v4
+      - uses: astral-sh/setup-uv@v7
       - uses: swatinem/rust-cache@v2
 
       - name: Verify tag matches workspace version
@@ -60,7 +60,7 @@ jobs:
         run: uv publish --publish-url https://pypi.org/legacy/
 
       - name: Publish OCI image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: tools/build/runtime.Dockerfile
@@ -70,7 +70,7 @@ jobs:
             ghcr.io/aeos/aeos:latest
 
       - name: Create GitHub release with changelog
-        uses: release-drafter/release-drafter@v6
+        uses: release-drafter/release-drafter@v7
         with: { version: "${{ github.ref_name }}" }
 
       - name: Deploy docs
