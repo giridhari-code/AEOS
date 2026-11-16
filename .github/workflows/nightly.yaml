@@ -11,12 +11,12 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.85.0
           targets: x86_64-unknown-none
-      - uses: astral-sh/setup-uv@v4
+      - uses: astral-sh/setup-uv@v7
       - run: sudo apt-get update && sudo apt-get install -y qemu-system-x86 grub-pc-bin xorriso mtools nasm
       - run: make build-iso
       - run: uv sync --locked --group dev
@@ -25,22 +25,22 @@ jobs:
   fuzz:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@master
         with: { toolchain: 1.85.0, components: llvm-tools }
-      - uses: astral-sh/setup-uv@v4
+      - uses: astral-sh/setup-uv@v7
       - run: cargo fuzz run --fuzz-dir tests/fuzz -- -runs=30000
       - run: uv run pytest tests/fuzz --timeout 1800
 
   benchmarks:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { fetch-depth: 0 }
       - uses: dtolnay/rust-toolchain@master
         with: { toolchain: 1.85.0 }
       - uses: swatinem/rust-cache@v2
-      - uses: astral-sh/setup-uv@v4
+      - uses: astral-sh/setup-uv@v7
       - run: cargo bench --workspace -- --save-baseline nightly
       - run: cargo bench --workspace -- --baseline nightly --load-baseline main 2>/dev/null || true
       - run: uv sync --locked --group dev
@@ -49,10 +49,10 @@ jobs:
   dependency-drift:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@master
         with: { toolchain: 1.85.0 }
-      - uses: astral-sh/setup-uv@v4
+      - uses: astral-sh/setup-uv@v7
       - run: cargo update --dry-run
       - run: cargo deny check advisories
       - run: uv lock --check
@@ -64,7 +64,7 @@ jobs:
     permissions:
       security-events: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: github/codeql-action/init@v3
+      - uses: actions/checkout@v7
+      - uses: github/codeql-action/init@v4
         with: { languages: c-cpp, python, rust }
-      - uses: github/codeql-action/analyze@v3
+      - uses: github/codeql-action/analyze@v4
